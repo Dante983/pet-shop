@@ -4,7 +4,7 @@ use App\Http\Controllers\AdminController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['prefix' => 'v1'], function () {
-    Route::get('/admin', [AdminController::class, 'index']);
-    Route::post('/admin/create', [AdminController::class, 'create']);
+Route::prefix('v1/admin')->group(function () {
+    Route::post('create', [AdminController::class, 'create']);
+    Route::post('login', [AdminController::class, 'login']);
 });
