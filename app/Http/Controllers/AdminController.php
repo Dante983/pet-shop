@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\File;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -42,8 +43,19 @@ class AdminController extends Controller
             ]);
 
             if ($request->hasFile('avatar')) {
-                $avatarPath = $request->file('avatar')->store('avatars', 'public');
-                $user->avatar = $avatarPath;
+                $file = $request->file('avatar');
+                $path = $file->store('avatars', 'public');
+
+                $fileRecord = File::create([
+                    'uuid' => (string) Str::uuid(),
+                    'name' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'size' => $file->getSize(),
+                    'type' => $file->getClientOriginalExtension(),
+                    'mime_type' => $file->getMimeType(),
+                ]);
+
+                $user->avatar = $fileRecord->uuid;
             }
 
             $user->save();
