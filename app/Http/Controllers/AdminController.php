@@ -18,25 +18,39 @@ class AdminController extends Controller
     {
         $this->authorizeAdmin();
 
-        $validatedData = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'address' => 'required|string',
-            'phone_number' => 'required|numeric',
-        ]);
+        try {
+            $validatedData = $request->validate([
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8',
+                'password_confirmation' => 'required|string|same:password',
+                'address' => 'required|string',
+                'phone_number' => 'required|string|max:15',
+                'avatar' => 'required|image|max:2048',
+            ]);
 
-        User::create([
-            'uuid' => (string) Str::uuid(),
-            'first_name' => $validatedData['first_name'],
-            'last_name' => $validatedData['last_name'],
-            'email' => $validatedData['email'],
-            'password' => Hash::make($validatedData['password']),
-            'is_admin' => true,
-            'address' => $validatedData['address'],
-            'phone_number' => $validatedData['phone_number'],
-        ]);
+            $user = new User([
+                'uuid' => (string) Str::uuid(),
+                'first_name' => $validatedData['first_name'],
+                'last_name' => $validatedData['last_name'],
+                'email' => $validatedData['email'],
+                'password' => Hash::make($validatedData['password']),
+                'is_admin' => true,
+                'address' => $validatedData['address'],
+                'phone_number' => $validatedData['phone_number'],
+            ]);
+
+            if ($request->hasFile('avatar')) {
+                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+                $user->avatar = $avatarPath;
+            }
+
+            $user->save();
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
 
         return response()->json(['message' => 'Admin account created successfully'], 201);
     }
@@ -56,7 +70,15 @@ class AdminController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        $user->update(['last_login_at' => now()]);
+
         return $this->respondWithToken($token);
+    }
+
+    public function logout()
+    {
+        auth()->logout();
+        return response()->json(['message' => 'Successfully logged out']);
     }
 
     private function authorizeAdmin()
