@@ -7,9 +7,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Services\JwtService;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
+    protected $jwtService;
+
+    public function __construct(JwtService $jwtService)
+    {
+        $this->jwtService = $jwtService;
+    }
+
     public function index()
     {
         return response()->json(['message' => 'Hello, Admin!']);
@@ -17,7 +26,7 @@ class AdminController extends Controller
 
     public function create(Request $request)
     {
-        $this->authorizeAdmin();
+        $this->authorizeAdmin($request->user);
 
         try {
             $validatedData = $request->validate([
@@ -63,7 +72,6 @@ class AdminController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
-
         return response()->json(['message' => 'Admin account created successfully'], 201);
     }
 
@@ -84,7 +92,9 @@ class AdminController extends Controller
 
         $user->update(['last_login_at' => now()]);
 
-        return $this->respondWithToken($token);
+        $jwt = $this->jwtService->createToken($user);
+
+        return $this->respondWithToken($jwt);
     }
 
     public function logout()
@@ -93,9 +103,9 @@ class AdminController extends Controller
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    private function authorizeAdmin()
+    private function authorizeAdmin($user)
     {
-        if (!auth()->user() || !auth()->user()->is_admin) {
+        if (!$user->is_admin) {
             abort(403, 'Unauthorized action.');
         }
     }
@@ -105,7 +115,7 @@ class AdminController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60
+            'expires_in' => 3600
         ]);
     }
 }

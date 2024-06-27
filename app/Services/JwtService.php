@@ -14,10 +14,13 @@ class JwtService
 
     public function __construct()
     {
+        $privateKey = InMemory::file(storage_path('oauth-private.key'), env('PEM_PASSPHRASE'));
+        $publicKey = InMemory::file(storage_path('oauth-public.key'));
+
         $this->config = Configuration::forAsymmetricSigner(
             new Sha256(),
-            InMemory::file(storage_path('oauth-private.key')),
-            InMemory::file(storage_path('oauth-public.key'))
+            $privateKey,
+            $publicKey
         );
     }
 

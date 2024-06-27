@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 use Closure;
 use App\Services\JwtService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AuthMiddleware
 {
@@ -24,18 +25,24 @@ class AuthMiddleware
             return response()->json(['error' => 'Token not provided'], 401);
         }
 
-        $jwt = $this->jwtService->parseToken($token);
+        try {
+            $jwt = $this->jwtService->parseToken($token);
 
-        if (!$this->jwtService->validateToken($jwt)) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            if (!$this->jwtService->validateToken($jwt)) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $user = $this->jwtService->getUserFromToken($jwt);
+            if (!$user) {
+                return response()->json(['error' => 'User not found'], 404);
+            }
+
+            // Set the authenticated user for the current request
+            Auth::setUser($user);
+            $request->merge(['user' => $user]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Invalid token'], 403);
         }
-
-        $user = $this->jwtService->getUserFromToken($jwt);
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        $request->merge(['user' => $user]);
 
         return $next($request);
     }
