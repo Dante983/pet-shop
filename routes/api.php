@@ -11,8 +11,9 @@ Route::prefix('v1')->group(function () {
             Route::post('login', [AdminController::class, 'login']);
         });
 
-        Route::middleware(['auth:jwt'])->group(function () {
-            Route::get('logout', [AdminController::class, 'logout']);
+        Route::middleware(['auth.jwt'])->group(function () {
+            Route::post('logout', [AdminController::class, 'logout']); // Use POST for logout
+
         });
     });
 });

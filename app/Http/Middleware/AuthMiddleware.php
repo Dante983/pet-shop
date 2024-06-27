@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Middleware;
@@ -7,6 +6,7 @@ use Closure;
 use App\Services\JwtService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\JWTToken;
 
 class AuthMiddleware
 {
@@ -35,6 +35,13 @@ class AuthMiddleware
             $user = $this->jwtService->getUserFromToken($jwt);
             if (!$user) {
                 return response()->json(['error' => 'User not found'], 404);
+            }
+
+            // Update last_used_at for the token
+            $tokenId = $jwt->claims()->get('jti');
+            $jwtToken = JWTToken::where('unique_id', $tokenId)->first();
+            if ($jwtToken) {
+                $jwtToken->update(['last_used_at' => now()]);
             }
 
             // Set the authenticated user for the current request

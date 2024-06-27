@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\File;
+use App\Models\JWTToken;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -26,7 +27,7 @@ class AdminController extends Controller
 
     public function create(Request $request)
     {
-        $this->authorizeAdmin($request->user);
+        // $this->authorizeAdmin($request->user);
 
         try {
             $validatedData = $request->validate([
@@ -97,14 +98,29 @@ class AdminController extends Controller
         return $this->respondWithToken($jwt);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
+        $token = $request->bearerToken();
+
+        if ($token) {
+            try {
+                $jwt = $this->jwtService->parseToken($token);
+
+                // Delete the token from the database
+                $tokenId = $jwt->claims()->get('jti');
+                JWTToken::where('unique_id', $tokenId)->delete();
+            } catch (\Exception $e) {
+                return response()->json(['error' => 'Invalid token'], 403);
+            }
+        }
+
         auth()->logout();
         return response()->json(['message' => 'Successfully logged out']);
     }
 
     private function authorizeAdmin($user)
     {
+        dd($user);
         if (!$user->is_admin) {
             abort(403, 'Unauthorized action.');
         }
